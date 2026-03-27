@@ -221,7 +221,7 @@ python app.py --port 5003 --peers http://127.0.0.1:5001 http://127.0.0.1:5002
 ## Web UI
 
 **Screenshot:**
-![Web UI](./docs/screenshots/screenshot-web-ui.png)
+!(./docs/screenshots/screenshot-web-ui.png)
 
 ## Dokumentasi Pengujian / Testing Documentation
 
