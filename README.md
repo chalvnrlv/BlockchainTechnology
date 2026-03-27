@@ -5,9 +5,9 @@
 | Nama | NRP |
 |------|-----|
 | Danar Bagus Rasendriya | 5027231055 |
-|  |  |
-|  |  |
-|  |  |
+| Diandra N. A. | 5027231004 |
+| Chalvin Reza F. | 5025221054 |
+| Tio Axellino I. | 5027231065 |
 
 
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
