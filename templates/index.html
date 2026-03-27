@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Blockchain Node</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="layout">
+        <header class="hero">
+            <div>
+                <p class="eyebrow">Educational Blockchain Dashboard</p>
+                <h1>Node <span id="node-port">{{ port }}</span></h1>
+                <p class="subtitle" id="node-url">{{ node_url }}</p>
+            </div>
+            <div class="actions">
+                <button id="refresh-button" type="button">Refresh Data</button>
+                <button id="resolve-button" type="button">Resolve Chain</button>
+                <button id="mine-button" type="button">Mine Block</button>
+            </div>
+        </header>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Node Summary</h2>
+                <dl class="stats">
+                    <div>
+                        <dt>Wallet Address</dt>
+                        <dd id="wallet-address">-</dd>
+                    </div>
+                    <div>
+                        <dt>Balance</dt>
+                        <dd id="wallet-balance">-</dd>
+                    </div>
+                    <div>
+                        <dt>Spendable Balance</dt>
+                        <dd id="wallet-spendable">-</dd>
+                    </div>
+                    <div>
+                        <dt>Chain Length</dt>
+                        <dd id="chain-length">-</dd>
+                    </div>
+                    <div>
+                        <dt>Difficulty</dt>
+                        <dd id="difficulty">-</dd>
+                    </div>
+                    <div>
+                        <dt>Mining Reward</dt>
+                        <dd id="mining-reward">-</dd>
+                    </div>
+                    <div>
+                        <dt>Chain Status</dt>
+                        <dd id="chain-validity">-</dd>
+                    </div>
+                    <div>
+                        <dt>Pending Transactions</dt>
+                        <dd id="pending-count">-</dd>
+                    </div>
+                </dl>
+                <details>
+                    <summary>Public Key</summary>
+                    <pre id="public-key"></pre>
+                </details>
+            </article>
+
+            <article class="panel">
+                <h2>Create Transaction</h2>
+                <form id="transaction-form" class="stack">
+                    <label>
+                        Recipient Address
+                        <textarea id="recipient-address" rows="3" placeholder="Paste recipient wallet address"></textarea>
+                    </label>
+                    <label>
+                        Amount
+                        <input id="amount" type="number" min="0.0001" step="0.0001" placeholder="10">
+                    </label>
+                    <button type="submit">Send Transaction</button>
+                </form>
+                <p class="hint">
+                    Transaksi akan ditandatangani otomatis menggunakan private key wallet node ini.
+                </p>
+            </article>
+
+            <article class="panel">
+                <h2>Peer Nodes</h2>
+                <form id="peer-form" class="stack">
+                    <label>
+                        Register Peer URLs
+                        <textarea id="peer-input" rows="3" placeholder="http://127.0.0.1:5002,http://127.0.0.1:5003"></textarea>
+                    </label>
+                    <button type="submit">Register Peers</button>
+                </form>
+                <div id="peer-list" class="chips"></div>
+            </article>
+        </section>
+
+        <section class="grid">
+            <article class="panel wide">
+                <h2>Pending Transactions</h2>
+                <div id="pending-list" class="stack cards"></div>
+            </article>
+            <article class="panel wide">
+                <h2>Blockchain</h2>
+                <div id="chain-list" class="stack cards"></div>
+            </article>
+        </section>
+
+        <section class="panel api-inspector">
+            <div class="api-inspector__header">
+                <h2>API Inspector</h2>
+                <div class="api-inspector__controls">
+                    <span id="api-entry-count" class="api-count">0 requests</span>
+                    <button id="api-clear-button" type="button" class="btn-ghost">Clear</button>
+                </div>
+            </div>
+            <div id="api-log" class="api-log">
+                <p class="empty-state">No API calls recorded yet. Perform an action to see responses here.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const refreshBtn = document.getElementById("refresh-button");
+        const mineButton = document.getElementById("mine-button");
+        const resolveButton = document.getElementById("resolve-button");
+        let apiHistory = [];
+        let countdown = 8;
+
+        function setText(id, value) {
+            document.getElementById(id).textContent = value;
+        }
+
+        function setLoading(button, loading, originalText) {
+            button.disabled = loading;
+            button.textContent = loading ? "Please wait..." : originalText;
+        }
+
+        function formatAmount(value) {
+            return Number(value).toFixed(4);
+        }
+
+        function shortValue(value, max = 22) {
+            if (!value) {
+                return "-";
+            }
+            return value.length > max ? `${value.slice(0, max)}...` : value;
+        }
+
+        function showToast(message, isError = false) {
+            const existing = document.getElementById("toast");
+            if (existing) {
+                existing.remove();
+            }
+
+            const toast = document.createElement("div");
+            toast.id = "toast";
+            toast.className = `toast${isError ? " error" : ""}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add("show"));
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function escapeHtml(value) {
+            return value
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;");
+        }
+
+        function syntaxHighlight(json) {
+            const str = typeof json === "string" ? json : JSON.stringify(json, null, 2);
+            return str.replace(
+                /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                (match) => {
+                    let cls = "json-number";
+                    if (/^"/.test(match)) {
+                        cls = /:$/.test(match) ? "json-key" : "json-string";
+                    } else if (/true|false/.test(match)) {
+                        cls = "json-bool";
+                    } else if (/null/.test(match)) {
+                        cls = "json-null";
+                    }
+
+                    return `<span class="${cls}">${escapeHtml(match)}</span>`;
+                }
+            );
+        }
+
+        function addApiEntry(method, path, data, isError = false) {
+            apiHistory.unshift({ method, path, data, isError, time: new Date() });
+            if (apiHistory.length > 10) {
+                apiHistory = apiHistory.slice(0, 10);
+            }
+            renderApiLog();
+        }
+
+        function renderApiLog() {
+            const log = document.getElementById("api-log");
+            const counter = document.getElementById("api-entry-count");
+            counter.textContent = `${apiHistory.length} request${apiHistory.length !== 1 ? "s" : ""}`;
+
+            if (!apiHistory.length) {
+                log.innerHTML = '<p class="empty-state">No API calls recorded yet.</p>';
+                return;
+            }
+
+            log.innerHTML = "";
+            apiHistory.forEach((entry, index) => {
+                const el = document.createElement("div");
+                el.className = "api-entry";
+                const timeStr = entry.time.toLocaleTimeString("id-ID");
+                const statusLabel = entry.isError ? "ERROR" : "OK";
+                const statusClass = entry.isError ? "err" : "ok";
+                const methodClass = `method-${entry.method.toLowerCase()}`;
+                const highlighted = syntaxHighlight(entry.data);
+
+                el.innerHTML = `
+                    <div class="api-entry__header" data-index="${index}">
+                        <span class="api-method ${methodClass}">${entry.method}</span>
+                        <span class="api-entry__path">${entry.path}</span>
+                        <span class="api-entry__time">${timeStr}</span>
+                        <span class="api-entry__status ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="api-entry__body" id="api-body-${index}">
+                        <pre>${highlighted}</pre>
+                    </div>
+                `;
+
+                if (index === 0) {
+                    el.querySelector(`#api-body-${index}`).classList.add("open");
+                }
+
+                el.querySelector(".api-entry__header").addEventListener("click", () => {
+                    el.querySelector(`#api-body-${index}`).classList.toggle("open");
+                });
+
+                log.appendChild(el);
+            });
+        }
+
+        function resetCountdown() {
+            countdown = 8;
+            refreshBtn.textContent = `Refresh (${countdown}s)`;
+        }
+
+        async function fetchJson(url, options = {}) {
+            const response = await fetch(url, {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                ...options
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw data;
+            }
+            return data;
+        }
+
+        function renderPeers(peers) {
+            const peerList = document.getElementById("peer-list");
+            peerList.innerHTML = "";
+
+            if (!peers.length) {
+                peerList.innerHTML = '<p class="empty-state">Belum ada peer terdaftar.</p>';
+                return;
+            }
+
+            peers.forEach((peer) => {
+                const item = document.createElement("span");
+                item.className = "chip";
+                item.textContent = peer;
+                peerList.appendChild(item);
+            });
+        }
+
+        function renderPendingTransactions(transactions) {
+            const container = document.getElementById("pending-list");
+            container.innerHTML = "";
+
+            if (!transactions.length) {
+                container.innerHTML = '<p class="empty-state">Tidak ada pending transaction.</p>';
+                return;
+            }
+
+            transactions.forEach((transaction) => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = `
+                    <h3>${shortValue(transaction.transaction_id, 18)}</h3>
+                    <p><strong>From:</strong> ${shortValue(transaction.sender_address, 24)}</p>
+                    <p><strong>To:</strong> ${shortValue(transaction.recipient_address, 24)}</p>
+                    <p><strong>Amount:</strong> ${formatAmount(transaction.amount)}</p>
+                    <p><strong>Timestamp:</strong> ${transaction.timestamp}</p>
+                `;
+
+                const broadcastBtn = document.createElement("button");
+                broadcastBtn.className = "btn-secondary";
+                broadcastBtn.textContent = "Broadcast to Peers";
+                broadcastBtn.addEventListener("click", async () => {
+                    setLoading(broadcastBtn, true, "Broadcast to Peers");
+                    try {
+                        const data = await fetchJson("/transactions/broadcast", {
+                            method: "POST",
+                            body: JSON.stringify({ transaction_id: transaction.transaction_id })
+                        });
+                        addApiEntry("POST", "/transactions/broadcast", data);
+                        showToast(`Broadcasted to ${data.success.length} peer(s)`);
+                    } catch (error) {
+                        addApiEntry("POST", "/transactions/broadcast", error, true);
+                        showToast(error.message || "Broadcast failed", true);
+                    } finally {
+                        setLoading(broadcastBtn, false, "Broadcast to Peers");
+                    }
+                });
+
+                card.appendChild(broadcastBtn);
+                container.appendChild(card);
+            });
+        }
+
+        function renderChain(chain) {
+            const container = document.getElementById("chain-list");
+            container.innerHTML = "";
+
+            chain.forEach((block, index) => {
+                const card = document.createElement("div");
+                card.className = "card";
+                if (index === chain.length - 1 && block.index !== 0) {
+                    card.classList.add("card--latest");
+                }
+
+                const transactionsHtml = block.transactions.map((transaction) => `
+                    <li>
+                        ${shortValue(transaction.sender_address, 18)} -> ${shortValue(transaction.recipient_address, 18)}
+                        | ${formatAmount(transaction.amount)}
+                    </li>
+                `).join("");
+                const genesisBadge = block.index === 0
+                    ? '<span class="badge badge-genesis">GENESIS</span>'
+                    : "";
+
+                card.innerHTML = `
+                    <h3>Block ${block.index}${genesisBadge}</h3>
+                    <p><strong>Hash:</strong> ${shortValue(block.hash, 26)}</p>
+                    <p><strong>Prev Hash:</strong> ${shortValue(block.previous_hash, 26)}</p>
+                    <p><strong>Nonce:</strong> ${block.nonce}</p>
+                    <p><strong>Timestamp:</strong> ${block.timestamp}</p>
+                    <p><strong>Transactions:</strong> ${block.transactions.length}</p>
+                    <ul>${transactionsHtml || "<li>No transactions</li>"}</ul>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function loadDashboard() {
+            try {
+                const data = await fetchJson("/dashboard-data");
+                setText("node-port", data.port);
+                setText("node-url", data.node_url);
+                setText("wallet-address", data.wallet.address);
+                setText("wallet-balance", formatAmount(data.wallet.balance));
+                setText("wallet-spendable", formatAmount(data.wallet.spendable_balance));
+                setText("chain-length", data.chain_length);
+                setText("difficulty", data.difficulty);
+                setText("mining-reward", formatAmount(data.mining_reward));
+                const statusEl = document.getElementById("chain-validity");
+                statusEl.textContent = `${data.chain_valid ? "✓ VALID" : "✗ INVALID"} | ${data.validation_message}`;
+                statusEl.style.color = data.chain_valid ? "var(--accent)" : "#c0392b";
+                statusEl.style.fontWeight = "bold";
+                setText("pending-count", data.pending_count);
+                setText("public-key", data.wallet.public_key);
+                renderPeers(data.peers);
+                renderPendingTransactions(data.pending_transactions);
+                renderChain(data.chain);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        document.getElementById("transaction-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            const payload = {
+                recipient_address: document.getElementById("recipient-address").value.trim(),
+                amount: document.getElementById("amount").value
+            };
+
+            setLoading(submitButton, true, "Send Transaction");
+            try {
+                const data = await fetchJson("/transactions/new", {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                addApiEntry("POST", "/transactions/new", data);
+                showToast("Transaction submitted!");
+                event.target.reset();
+                await loadDashboard();
+            } catch (error) {
+                addApiEntry("POST", "/transactions/new", error, true);
+                showToast(error.message || "Transaction failed", true);
+            } finally {
+                setLoading(submitButton, false, "Send Transaction");
+            }
+        });
+
+        document.getElementById("peer-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            const rawPeers = document.getElementById("peer-input").value.trim();
+            const nodes = rawPeers
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean);
+
+            setLoading(submitButton, true, "Register Peers");
+            try {
+                const data = await fetchJson("/nodes/register", {
+                    method: "POST",
+                    body: JSON.stringify({ nodes })
+                });
+                addApiEntry("POST", "/nodes/register", data);
+                showToast(`Registered ${data.registered_now.length} peer(s)`);
+                event.target.reset();
+                await loadDashboard();
+            } catch (error) {
+                addApiEntry("POST", "/nodes/register", error, true);
+                showToast(error.message || "Register peers failed", true);
+            } finally {
+                setLoading(submitButton, false, "Register Peers");
+            }
+        });
+
+        mineButton.addEventListener("click", async () => {
+            setLoading(mineButton, true, "Mine Block");
+            try {
+                const data = await fetchJson("/mine", {
+                    method: "POST",
+                    body: JSON.stringify({})
+                });
+                addApiEntry("POST", "/mine", data);
+                showToast("Block mined successfully!");
+                await loadDashboard();
+            } catch (error) {
+                addApiEntry("POST", "/mine", error, true);
+                showToast(error.message || "Mining failed", true);
+            } finally {
+                setLoading(mineButton, false, "Mine Block");
+            }
+        });
+
+        resolveButton.addEventListener("click", async () => {
+            setLoading(resolveButton, true, "Resolve Chain");
+            try {
+                const data = await fetchJson("/nodes/resolve");
+                addApiEntry("GET", "/nodes/resolve", data);
+                showToast(data.replaced ? "Chain replaced!" : "Chain is already up to date.");
+                await loadDashboard();
+            } catch (error) {
+                addApiEntry("GET", "/nodes/resolve", error, true);
+                showToast(error.message || "Resolve failed", true);
+            } finally {
+                setLoading(resolveButton, false, "Resolve Chain");
+            }
+        });
+
+        refreshBtn.addEventListener("click", async () => {
+            await loadDashboard();
+            resetCountdown();
+        });
+
+        document.getElementById("api-clear-button").addEventListener("click", () => {
+            apiHistory = [];
+            renderApiLog();
+            showToast("API log cleared.");
+        });
+
+        const refreshInterval = setInterval(async () => {
+            countdown--;
+            refreshBtn.textContent = `Refresh (${countdown}s)`;
+            if (countdown <= 0) {
+                await loadDashboard();
+                resetCountdown();
+            }
+        }, 1000);
+
+        renderApiLog();
+        resetCountdown();
+        loadDashboard();
+    </script>
+</body>
+</html>
