@@ -221,7 +221,7 @@ python app.py --port 5003 --peers http://127.0.0.1:5001 http://127.0.0.1:5002
 ## Web UI
 
 **Screenshot:**
-![Web UI](./docs/screenshots/screenshot-web-ui.png)
+<img width="1228" height="1570" alt="screenshot-web-ui" src="https://github.com/user-attachments/assets/a2a40597-5b09-442f-86d4-f247b230d841" />
 
 ## Dokumentasi Pengujian / Testing Documentation
 
@@ -230,7 +230,7 @@ python app.py --port 5003 --peers http://127.0.0.1:5001 http://127.0.0.1:5002
 Agar dapat melakukan transaksi, sebuah node (pada konteks ini node 5001) harus memiliki balance terlebih dahulu. Maka dilakukan proses mining pertama kali.
 
 **Screenshot:**
-![Mining Awal](./docs/screenshots/00-proses-mining-awal.png)
+<img width="2083" height="1737" alt="00-proses-mining-awal" src="https://github.com/user-attachments/assets/f18fd3f4-ef41-4f33-ba03-1f3ed882c766" />
 
 ### 10.1 Penambahan Transaksi / Adding Transactions
 
@@ -264,7 +264,7 @@ Body minimal yang diharapkan:
 Hasil sukses akan mengembalikan field seperti `message`, `transaction`, `signature_valid`, dan `pending_count`. Transaksi yang valid akan menghasilkan `signature_valid: true` dan masuk ke daftar `pending_transactions`.
 
 **Screenshot:**
-![Penambahan Transaksi](./docs/screenshots/01-penambahan-transaksi.png)
+<img width="2094" height="1744" alt="01-penambahan-transaksi" src="https://github.com/user-attachments/assets/f3f37797-be43-4007-b062-49fa6e0a323d" />
 
 ### 10.2 Proses Mining / Mining Process
 
@@ -288,7 +288,7 @@ curl -X POST http://127.0.0.1:5001/mine \
 Endpoint ini mengembalikan block baru, wallet miner setelah mining, dan panjang chain terbaru. Saat diuji, mining sukses menghasilkan block dengan hash berprefiks `000`, `chain_length` bertambah, dan daftar pending transaction menjadi kosong karena transaksi sudah masuk ke block.
 
 **Screenshot:**
-![Proses Mining](./docs/screenshots/02-proses-mining.png)
+<img width="2094" height="1744" alt="02-proses-mining" src="https://github.com/user-attachments/assets/7f5c9def-1596-4e03-9830-b06477a042ff" />
 
 ### 10.3 Reward Miner / Miner Reward
 
@@ -312,11 +312,11 @@ curl http://127.0.0.1:5001/chain
 Dalam pengujian runtime, setelah mining kedua pada node pengirim, block berisi dua transaksi: transaksi user yang dipendingkan sebelumnya dan reward transaction dari `SYSTEM` sebesar `25.0` di posisi terakhir.
 
 **Screenshot:**
-![Reward Miner](./docs/screenshots/03-reward-miner.png)
+<img width="2094" height="1744" alt="03-reward-miner" src="https://github.com/user-attachments/assets/55d7409c-977d-4d22-aa68-2bb50c6be880" />
 
 **Screenshot:**
 Validasi Block
-![Reward Miner](./docs/screenshots/03-reward-miner-block.png)
+<img width="2094" height="1744" alt="03-reward-miner-block" src="https://github.com/user-attachments/assets/0b88d729-5152-422b-8af8-d90a770c0ee1" />
 
 ### 10.4 Validasi Digital Signature / Digital Signature Validation
 
@@ -349,11 +349,11 @@ curl -X POST http://127.0.0.1:5001/transactions/validate \
 Hasil valid akan mengembalikan `valid: true` dan pesan `Digital signature valid.`. Saat payload yang sama dimodifikasi, misalnya `amount` diubah tanpa mengubah `signature`, endpoint akan menolak dengan `valid: false` dan pesan `Digital signature verification failed.`.
 
 **Screenshot:**
-![Validasi Digital Signature](./docs/screenshots/04-validasi-digital-signature.png)
+<img width="2094" height="1744" alt="04-validasi-digital-signature" src="https://github.com/user-attachments/assets/3d74daa8-3418-4c97-8e71-0d18cc95df9d" />
 
 **Screenshot:**
 Validasi jika amount diubah, sehingga tidak valid
-![Validasi Digital Signature](./docs/screenshots/04-validasi-digital-signature-invalid.png)
+<img width="2094" height="1744" alt="04-validasi-digital-signature-invalid" src="https://github.com/user-attachments/assets/e76fdc30-320a-4fe8-8d42-691a7d46e004" />
 
 ### 10.5 Sinkronisasi Antar-Node / Node Synchronization
 
@@ -380,15 +380,15 @@ Hasil verifikasi runtime menunjukkan bahwa node penerima transaksi tetap memilik
 
 **Screenshot:**
 Node 5002 SEBELUM Resolve (Sinkronisasi) - LIHAT BALANCE
-![Sinkronisasi Antar-Node](./docs/screenshots/05-sinkronisasi-antar-node-before.png)
+<img width="2094" height="1744" alt="05-sinkronisasi-antar-node-before" src="https://github.com/user-attachments/assets/7d9ddc73-602a-42d5-a3d3-0bdb69679dcf" />
 
 **Screenshot:**
 Proses Resolve
-![Sinkronisasi Antar-Node](./docs/screenshots/05-sinkronisasi-antar-node-resolve.png)
+<img width="2094" height="1744" alt="05-sinkronisasi-antar-node-resolve" src="https://github.com/user-attachments/assets/fd200aed-ef64-4388-b637-4a9bcdf20306" />
 
 **Screenshot:**
 Node 5002 SETELAH Resolve - Balance bertambah, status `replaced: true`, `source: http://127.0.0.1:5001`
-![Sinkronisasi Antar-Node](./docs/screenshots/05-sinkronisasi-antar-node-after-resolve.png)
+<img width="2094" height="1744" alt="05-sinkronisasi-antar-node-after-resolve" src="https://github.com/user-attachments/assets/4357f7c7-ffd5-45ac-a57c-5332b5475521" />
 
 ### 10.6 Broadcast Transaksi ke Peer / Broadcasting Transactions
 
@@ -415,7 +415,7 @@ Catatan: Endpoint ini hanya menyebarkan transaksi ke peer, bukan block. Setiap n
 tetap harus melakukan mining sendiri untuk memasukkan transaksi ke dalam chain-nya.
 
 **Screenshot:**
-![Broadcast Transaction](./docs/screenshots/06-transaction-broadcast.png)
+<img width="2094" height="1744" alt="06-transaction-broadcast" src="https://github.com/user-attachments/assets/3f0f3a41-e47e-42c4-a50c-0ccb8658759c" />
 
 ### 10.7 Daftar Peer Node / Registered Peer Nodes
 
@@ -449,7 +449,7 @@ Penjelasan field:
 Catatan penting: Endpoint ini hanya menampilkan peer yang terdaftar secara lokal. `GET /nodes` tidak memeriksa apakah peer sedang aktif, tidak melakukan ping ke peer, dan tidak menjamin bahwa request broadcast atau resolve ke peer tersebut pasti berhasil.
 
 **Screenshot:**
-![Get Peer Nodes](./docs/screenshots/07-get-peer-nodes.png)
+<img width="2094" height="1744" alt="07-get-peer-nodes" src="https://github.com/user-attachments/assets/cfe5497e-d0ff-4515-8eca-6558b9aaee10" />
 
 ## Implementasi Kriptografi / Cryptography Implementation
 
