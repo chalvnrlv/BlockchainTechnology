@@ -76,9 +76,9 @@ Seluruh state disimpan di memori proses, sehingga saat node di-restart, wallet, 
 Secara struktural, satu proses Flask merepresentasikan satu node blockchain. Node tersebut dibungkus oleh `NodeState` di `app.py`, yang menggabungkan wallet, blockchain, dan daftar peer.
 
 ```text
-Browser / Postman
-        |
-        v
+       Browser / Postman
+               |
+               v
 +------------------------------+
 | Flask App (app.py)           |
 | Routes HTTP                  |
@@ -93,23 +93,23 @@ Browser / Postman
 | - blockchain: Blockchain     |
 | - peer_nodes: set[str]       |
 +---------+--------------------+
-          |                         +----------------------+
-          |                         | Peer Nodes           |
-          | resolve_chain() ------> | GET /chain via HTTP  |
-          |                         +----------------------+
-          |
-          +--> Wallet
-          |    - private/public key
-          |    - address
-          |    - sign_transaction()
-          |
-          +--> Blockchain
-               - chain
-               - pending_transactions
-               - validate_transaction()
-               - mine_pending_transactions()
-               - is_valid()
-               - replace_chain()
+               |                         +----------------------+
+               |                         | Peer Nodes           |
+               | resolve_chain() ------> | GET /chain via HTTP  |
+               |                         +----------------------+
+               |
+               +--> Wallet
+               |    - private/public key
+               |    - address
+               |    - sign_transaction()
+               |
+               +--> Blockchain
+                    - chain
+                    - pending_transactions
+                    - validate_transaction()
+                    - mine_pending_transactions()
+                    - is_valid()
+                    - replace_chain()
 ```
 
 Alur kerja sistem:
